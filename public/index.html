@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Ajira Quiz Arena</title><link rel="stylesheet" href="/style.css">
+<style>
+body{display:flex;flex-direction:column}
+main{flex:1;display:flex;flex-direction:column;padding:16px;max-width:520px;width:100%;margin:0 auto}
+.screen{flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;text-align:center}
+input{font:inherit;font-size:1.3rem;padding:14px;border-radius:12px;border:2px solid #ccc;width:100%;text-align:center}
+input:focus{outline:none;border-color:var(--red)}
+.err{color:var(--red);font-weight:600;min-height:1.4em}
+.big{font-size:2.2rem;font-weight:800}
+.grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:4px 0}
+.grid button{color:#fff;font-size:2.2rem;font-weight:900;min-height:120px;display:flex;align-items:center;justify-content:center;border-radius:16px}
+.grid button.opt3{color:#222}
+.grid button:active{transform:scale(.97)}
+.timerbar{height:10px;background:#ddd;border-radius:8px;overflow:hidden}
+.timerbar i{display:block;height:100%;background:var(--green);width:100%;transition:width .2s linear}
+.good{background:var(--green);color:#fff}.bad{background:var(--red);color:#fff}.meh{background:var(--char);color:#fff}
+.res{border-radius:16px;padding:28px 16px}
+.small{color:#666}
+</style></head>
+<body>
+<div class="flag"></div>
+<header class="brand"><b>AJIRA</b><span>Quiz Arena</span></header>
+<main>
+  <section id="join" class="screen">
+    <div class="big">Join the game</div>
+    <input id="pin" inputmode="numeric" maxlength="6" placeholder="Game PIN" autocomplete="off">
+    <input id="name" maxlength="16" placeholder="Your nickname" autocomplete="off">
+    <div id="joinErr" class="err"></div>
+    <button id="joinBtn" class="btn">Enter</button>
+  </section>
+
+  <section id="wait" class="screen hidden">
+    <div class="big" id="hello">You're in!</div>
+    <div class="small" id="waitMsg">See your name on the big screen. Waiting for the host to start...</div>
+  </section>
+
+  <section id="play" class="screen hidden" style="justify-content:flex-start">
+    <div class="small" id="qnum"></div>
+    <div class="timerbar"><i id="bar"></i></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section id="locked" class="screen hidden">
+    <div class="big">Answer locked in</div>
+    <div class="small">Waiting for everyone else...</div>
+  </section>
+
+  <section id="result" class="screen hidden">
+    <div id="resBox" class="res"><div class="big" id="resTitle"></div><div id="resSub" style="margin-top:8px;font-size:1.2rem"></div></div>
+    <div class="card"><div class="small">Your score</div><div class="big" id="score">0</div><div id="rank" class="small"></div></div>
+    <div class="small">Look at the big screen</div>
+  </section>
+
+  <section id="final" class="screen hidden">
+    <div class="big" id="finalTitle"></div>
+    <div class="card"><div class="small" id="finalName"></div><div class="big" id="finalScore"></div><div id="finalRank" class="small"></div></div>
+    <button class="btn ghost" onclick="sessionStorage.clear();location.href='/'">Play again</button>
+  </section>
+
+  <section id="out" class="screen hidden">
+    <div class="big" id="outMsg"></div>
+    <button class="btn" onclick="sessionStorage.clear();location.href='/'">Back</button>
+  </section>
+</main>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SH=["▲","◆","●","■"];
+const socket=io();
+let session=null, timerId=null;
+try{session=JSON.parse(sessionStorage.getItem("session")||"null")}catch(e){}
+const qp=new URLSearchParams(location.search);
+if(qp.get("pin"))$("pin").value=qp.get("pin").replace(/\D/g,"").slice(0,6);
+
+function show(id){["join","wait","play","locked","result","final","out"].forEach(s=>$(s).classList.toggle("hidden",s!==id))}
+function save(){try{sessionStorage.setItem("session",JSON.stringify(session))}catch(e){}}
+
+$("joinBtn").onclick=()=>{
+  $("joinErr").textContent="";
+  const pin=$("pin").value.trim(), name=$("name").value;
+  if(pin.length!==6){$("joinErr").textContent="PIN has 6 digits.";return}
+  socket.emit("player:join",{pin,name},r=>{
+    if(r.error){$("joinErr").textContent=r.error;return}
+    session={pin,id:r.id,name:r.name};save();
+    $("hello").textContent="You're in, "+r.name+"!";
+    show("wait");
+  });
+};
+$("name").addEventListener("keydown",e=>{if(e.key==="Enter")$("joinBtn").click()});
+
+function startTimer(seconds){
+  clearInterval(timerId);
+  const end=Date.now()+seconds*1000,total=seconds*1000;
+  const tick=()=>{const left=Math.max(0,end-Date.now());$("bar").style.width=(100*left/total)+"%";if(left<=0)clearInterval(timerId)};
+  tick();timerId=setInterval(tick,200);
+}
+function drawQuestion(d){
+  $("qnum").textContent="Question "+(d.index+1)+" of "+d.total;
+  const g=$("grid");g.innerHTML="";g.style.gridTemplateColumns="1fr 1fr";
+  for(let i=0;i<d.count;i++){
+    const b=document.createElement("button");b.className="opt"+i;b.textContent=SH[i];b.setAttribute("aria-label","Option "+"ABCD"[i]);
+    b.onclick=()=>{socket.emit("player:answer",i);[...g.children].forEach(x=>x.disabled=true)};
+    g.appendChild(b);
+  }
+  startTimer(d.time);show("play");
+}
+socket.on("question",drawQuestion);
+socket.on("locked",()=>{clearInterval(timerId);show("locked")});
+socket.on("result",r=>{
+  clearInterval(timerId);
+  const box=$("resBox");
+  if(!r.answered){box.className="res meh";$("resTitle").textContent="Too slow";$("resSub").textContent="You did not answer in time"}
+  else if(r.correct){box.className="res good";$("resTitle").textContent="Correct!";$("resSub").textContent="+"+r.delta+(r.streak>1?"  |  streak "+r.streak:"")}
+  else{box.className="res bad";$("resTitle").textContent="Not this time";$("resSub").textContent="The answer was "+SH[r.correctIndex]}
+  $("score").textContent=r.score;$("rank").textContent="Rank "+r.rank+" of "+r.of;
+  show("result");
+});
+socket.on("final",r=>{
+  $("finalTitle").textContent=r.rank<=5?"You made the top 5!":"Great game!";
+  $("finalName").textContent=r.name;$("finalScore").textContent=r.score+" points";
+  $("finalRank").textContent="Final rank "+r.rank+" of "+r.of;show("final");
+});
+socket.on("kicked",()=>{sessionStorage.clear();$("outMsg").textContent="The host removed you from the game.";show("out")});
+
+socket.on("connect",()=>{
+  if(!session)return;
+  socket.emit("player:rejoin",{pin:session.pin,id:session.id},r=>{
+    if(r.error){sessionStorage.clear();session=null;show("join");return}
+    $("hello").textContent="You're in, "+r.name+"!";
+    if(r.state==="lobby")show("wait");
+    else if(r.state==="question"&&r.question){r.question.answered?show("locked"):drawQuestion(r.question)}
+    else if(r.state==="final"){$("finalTitle").textContent="Game over";$("finalName").textContent=r.name;$("finalScore").textContent=r.score+" points";$("finalRank").textContent="";show("final")}
+    else{$("waitMsg").textContent="Waiting for the next question...";show("wait")}
+  });
+});
+</script></body></html>

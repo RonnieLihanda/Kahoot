@@ -1,0 +1,26 @@
+{
+  "title": "AI for Graphic Design: Week Challenge",
+  "timePerQuestion": 20,
+  "questions": [
+    { "q": "What does good contrast do in a design?", "options": ["Makes things stand out and easy to read", "Makes the file smaller", "Adds more fonts", "Hides the background"], "answer": 0 },
+    { "q": "What is the safest number of fonts to use in one design?", "options": ["Two", "Six", "As many as possible", "None"], "answer": 0 },
+    { "q": "What does visual hierarchy tell the viewer?", "options": ["What to read first", "Which colour is cheapest", "How to print the file", "Who made it"], "answer": 0 },
+    { "q": "Why must you always check AI's work?", "options": ["AI makes mistakes", "AI never works offline", "AI is always free", "AI cannot make images"], "answer": 0 },
+    { "q": "Which colours are the three traditional primary colours?", "options": ["Red, yellow, blue", "Red, green, purple", "Orange, green, purple", "Black, white, grey"], "answer": 0 },
+    { "q": "What does saturation describe?", "options": ["How vivid or dull a colour is", "How big a shape is", "Which font is used", "How sharp a photo is"], "answer": 0 },
+    { "q": "What is the 60-30-10 rule?", "options": ["Main colour, second colour, accent colour", "Font sizes for headings", "Image upload limits", "Print margins"], "answer": 0 },
+    { "q": "What is the minimum contrast ratio for normal text (WCAG)?", "options": ["4.5 to 1", "1 to 1", "2 to 1", "10 to 1"], "answer": 0 },
+    { "q": "What is a prompt?", "options": ["The instruction you give an AI", "A type of font", "A Canva template", "A printer setting"], "answer": 0 },
+    { "q": "Which is a strong image prompt?", "options": ["Flat vector illustration of a smiling woman in a salon, warm orange and teal, space for text, no text", "Make a nice poster", "Salon", "Something good-looking please"], "answer": 0 },
+    { "q": "Why should you say 'no text' in an AI image prompt?", "options": ["AI often garbles letters, so add text yourself in Canva", "Text makes images heavier", "AI cannot read English", "Text is not allowed in posters"], "answer": 0 },
+    { "q": "Before selling AI-made images to a client, what should you check?", "options": ["The tool's licence for commercial use", "The tool's logo colour", "How many friends use it", "Nothing, free means free to sell"], "answer": 0 },
+    { "q": "Which file type gives a logo with a transparent background?", "options": ["PNG", "JPG", "DOC", "MP3"], "answer": 0 },
+    { "q": "Which colour mode is right for professional printing?", "options": ["CMYK", "RGB", "HEX", "WIFI"], "answer": 0 },
+    { "q": "What does AI upscaling do?", "options": ["Enlarges a picture and adds detail", "Deletes the background", "Translates the text", "Changes the font"], "answer": 0 },
+    { "q": "Which of these is a good logo check?", "options": ["Works in black and white and stays readable small", "Uses at least 8 colours", "Copies a famous brand", "Only looks good on a poster"], "answer": 0 },
+    { "q": "What should a portfolio contain?", "options": ["Your 3 to 6 best pieces with short notes", "Every file on your phone", "Only your CV", "Screenshots of other designers' work"], "answer": 0 },
+    { "q": "Where is the best place to find your first client?", "options": ["Local businesses close to home", "Only overseas companies", "Anyone who asks you to pay a fee first", "Random strangers on WhatsApp"], "answer": 0 },
+    { "q": "A 'client' asks you to pay a fee before giving you work. What do you do?", "options": ["Walk away: it is a scam warning sign", "Pay quickly to secure it", "Send your ID number", "Share your M-Pesa PIN"], "answer": 0 },
+    { "q": "What is a brand kit?", "options": ["Logo, colours, fonts and rules that keep designs consistent", "A box of printing paper", "A free AI tool", "A type of contract"], "answer": 0 }
+  ]
+}

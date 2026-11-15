@@ -1,0 +1,10 @@
+{
+  "name": "ajira-quiz-arena",
+  "version": "1.0.0",
+  "description": "Live classroom quiz game for Ajira Digital trainings",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "test": "node test.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "express": "^4.19.2", "socket.io": "^4.7.5" },
+  "devDependencies": { "socket.io-client": "^4.7.5" }
+}

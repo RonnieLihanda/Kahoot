@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ajira-quiz-arena
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: HOST_KEY
+        sync: false   # set this in the Render dashboard so only you can start games
+      - key: MAX_PLAYERS
+        value: "50"

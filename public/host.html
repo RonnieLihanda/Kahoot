@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ajira Quiz Arena: Host</title><link rel="stylesheet" href="/style.css">
+<style>
+body{display:flex;flex-direction:column;min-height:100vh}
+main{flex:1;padding:24px 4vw;display:flex;flex-direction:column;gap:18px}
+.center{text-align:center}
+.pin{font-size:min(14vw,7rem);font-weight:900;letter-spacing:.12em;color:var(--red)}
+.url{font-size:1.6rem;font-weight:700;color:var(--green)}
+.players{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{background:#fff;border:2px solid var(--green);border-radius:999px;padding:6px 14px;font-weight:600;cursor:pointer}
+.chip:hover{border-color:var(--red)}
+.q{font-size:min(5vw,2.6rem);font-weight:800;text-align:center;margin:0}
+.timerbar{height:14px;background:#ddd;border-radius:8px;overflow:hidden}
+.timerbar i{display:block;height:100%;background:var(--green);width:100%;transition:width .2s linear}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.o{color:#fff;border-radius:16px;padding:22px;font-size:min(3.4vw,1.8rem);font-weight:700;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden}
+.o.opt3{color:#222}
+.o.dim{opacity:.3}
+.o.right{outline:6px solid #111;outline-offset:2px}
+.o .cnt{margin-left:auto;font-size:1.5rem;background:rgba(255,255,255,.3);border-radius:10px;padding:2px 12px}
+.row{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap}
+.lb{max-width:760px;margin:0 auto;width:100%;display:flex;flex-direction:column;gap:8px}
+.lbrow{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px 18px;font-size:1.4rem;font-weight:700;box-shadow:0 1px 5px rgba(0,0,0,.08)}
+.lbrow .n{width:2em;color:var(--red)}.lbrow .s{margin-left:auto;color:var(--green)}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;height:340px;margin:10px 0}
+.pod{width:min(17vw,170px);border-radius:14px 14px 0 0;color:#fff;text-align:center;padding:10px 6px;display:flex;flex-direction:column;justify-content:flex-start;font-weight:800;animation:rise .8s ease-out both}
+.pod .nm{font-size:1.15rem;word-break:break-word}.pod .sc{font-size:1rem;opacity:.95;margin-top:4px}.pod .rk{font-size:2rem}
+@keyframes rise{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+.small{color:#666}.err{color:var(--red);font-weight:700}
+</style></head>
+<body>
+<div class="flag"></div>
+<header class="brand"><b>AJIRA</b><span>Quiz Arena</span><span id="ttl" class="small" style="margin-left:auto;font-weight:400"></span></header>
+<main>
+ <section id="lobby" class="center">
+  <div class="small">On your phone, go to</div>
+  <div class="url" id="joinUrl"></div>
+  <div class="small">and enter the game PIN</div>
+  <div class="pin" id="pin">------</div>
+  <div class="row" style="margin:10px 0"><span id="count" class="small" style="font-size:1.2rem">0 players</span></div>
+  <div class="players" id="plist"></div>
+  <div class="small" style="margin:6px 0">Click a name to remove a player</div>
+  <div class="row"><button id="startBtn" class="btn green" style="font-size:1.4rem;padding:16px 40px" disabled>Start game</button></div>
+  <div id="note" class="err"></div>
+ </section>
+
+ <section id="question" class="hidden">
+  <div class="row" style="justify-content:space-between"><div id="qn" class="small" style="font-size:1.3rem"></div><div id="prog" class="small" style="font-size:1.3rem"></div></div>
+  <div class="timerbar"><i id="bar"></i></div>
+  <h1 class="q" id="qt"></h1>
+  <div class="opts" id="opts"></div>
+  <div class="row"><button id="skipBtn" class="btn ghost">End question now</button></div>
+ </section>
+
+ <section id="reveal" class="hidden">
+  <h1 class="q" id="rq"></h1>
+  <div class="opts" id="ropts"></div>
+  <h2 class="center" style="margin:6px 0 0">Top 5</h2>
+  <div class="lb" id="lb"></div>
+  <div class="row"><button id="nextBtn" class="btn green" style="font-size:1.3rem;padding:14px 40px">Next</button></div>
+ </section>
+
+ <section id="final" class="hidden center">
+  <h1 style="font-size:2.4rem;margin:0">Top 5</h1>
+  <div class="podium" id="podium"></div>
+  <div class="lb" id="flb"></div>
+  <div class="row" style="margin-top:10px"><button class="btn ghost" onclick="location.reload()">New game</button></div>
+ </section>
+</main>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const SH=["▲","◆","●","■"];
+const socket=io();
+let timerId=null, game=null, wasCreated=false;
+function show(id){["lobby","question","reveal","final"].forEach(s=>$(s).classList.toggle("hidden",s!==id))}
+function key(){try{return sessionStorage.getItem("hostKey")||""}catch(e){return ""}}
+
+function create(){
+  socket.emit("host:create",key(),r=>{
+    if(r.error){const k=prompt("Host key:");if(k===null)return;try{sessionStorage.setItem("hostKey",k)}catch(e){}return create()}
+    game=r;try{sessionStorage.setItem("hostPin",r.pin)}catch(e){}
+    wasCreated=true;
+    $("pin").textContent=r.pin;$("ttl").textContent=r.title+" | "+r.total+" questions";
+    $("joinUrl").textContent=location.host;
+    document.title="PIN "+r.pin+" | Ajira Quiz Arena";
+  });
+}
+socket.on("connect",()=>{
+  let pin=null;try{pin=sessionStorage.getItem("hostPin")}catch(e){}
+  if(wasCreated&&pin){socket.emit("host:reconnect",pin,r=>{if(r.error){create()}})}
+  else create();
+});
+
+socket.on("lobby",d=>{
+  $("pin").textContent=d.pin;
+  $("count").textContent=d.players.length+" / "+d.max+" players";
+  const pl=$("plist");pl.innerHTML="";
+  d.players.forEach(n=>{const c=document.createElement("span");c.className="chip";c.textContent=n;c.title="Remove";c.onclick=()=>{if(confirm("Remove "+n+"?"))socket.emit("host:kick",n)};pl.appendChild(c)});
+  $("startBtn").disabled=d.players.length===0;
+  show("lobby");
+});
+socket.on("notice",m=>{$("note").textContent=m;setTimeout(()=>$("note").textContent="",3000)});
+$("startBtn").onclick=()=>socket.emit("host:start");
+$("skipBtn").onclick=()=>socket.emit("host:next");
+$("nextBtn").onclick=()=>socket.emit("host:next");
+document.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){if(!$("reveal").classList.contains("hidden")){e.preventDefault();socket.emit("host:next")}}});
+
+function startTimer(seconds){
+  clearInterval(timerId);const end=Date.now()+seconds*1000,total=seconds*1000;
+  const tick=()=>{const left=Math.max(0,end-Date.now());$("bar").style.width=(100*left/total)+"%";if(left<=0)clearInterval(timerId)};
+  tick();timerId=setInterval(tick,200);
+}
+function optsInto(el,options,extra){
+  el.innerHTML="";
+  options.forEach((t,i)=>{
+    const d=document.createElement("div");d.className="o opt"+i;
+    const s=document.createElement("span");s.className="sym";s.textContent=SH[i];
+    const x=document.createElement("span");x.textContent=t;
+    d.append(s,x);if(extra)extra(d,i);el.appendChild(d);
+  });
+}
+socket.on("question",d=>{
+  $("qn").textContent="Question "+(d.index+1)+" of "+d.total;$("prog").textContent="0 answered";
+  $("qt").textContent=d.q;optsInto($("opts"),d.options);startTimer(d.time);show("question");
+});
+socket.on("progress",d=>{$("prog").textContent=d.answered+" / "+d.players+" answered"});
+
+function board(el,list){
+  el.innerHTML="";
+  list.forEach((p,i)=>{const r=document.createElement("div");r.className="lbrow";
+    const n=document.createElement("span");n.className="n";n.textContent=(i+1)+".";
+    const a=document.createElement("span");a.textContent=p.name;
+    const s=document.createElement("span");s.className="s";s.textContent=p.score;
+    r.append(n,a,s);el.appendChild(r)});
+}
+socket.on("reveal",d=>{
+  clearInterval(timerId);
+  $("rq").textContent=d.q;
+  optsInto($("ropts"),d.options,(el,i)=>{
+    el.classList.add(i===d.answer?"right":"dim");
+    const c=document.createElement("span");c.className="cnt";c.textContent=d.counts[i];el.appendChild(c);
+  });
+  board($("lb"),d.top5);
+  $("nextBtn").textContent=d.last?"Show final results":"Next question";
+  show("reveal");
+});
+socket.on("final",d=>{
+  clearInterval(timerId);
+  const pod=$("podium");pod.innerHTML="";
+  const colors=["#F2A900","#9aa0a6","#b5651d","#474747","#474747"];
+  // classic podium order: 4, 2, 1, 3, 5
+  const order=[3,1,0,2,4];
+  const heights=[150,230,300,190,120];
+  order.forEach((idx,pos)=>{
+    const p=d.top5[idx];if(!p)return;
+    const el=document.createElement("div");el.className="pod";el.style.height=heights[pos]+"px";el.style.background=colors[idx];el.style.animationDelay=(0.3*(4-idx))+"s";
+    const rk=document.createElement("div");rk.className="rk";rk.textContent=idx+1;
+    const nm=document.createElement("div");nm.className="nm";nm.textContent=p.name;
+    const sc=document.createElement("div");sc.className="sc";sc.textContent=p.score+" pts";
+    el.append(rk,nm,sc);pod.appendChild(el);
+  });
+  board($("flb"),d.top5);
+  show("final");
+});
+</script></body></html>
