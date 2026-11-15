@@ -39,6 +39,12 @@ main{flex:1;padding:24px 4vw;display:flex;flex-direction:column;gap:18px}
   <div class="url" id="joinUrl"></div>
   <div class="small">and enter the game PIN</div>
   <div class="pin" id="pin">------</div>
+  <div id="keyBox" class="hidden" style="margin:10px auto;max-width:360px">
+   <div class="small" style="margin-bottom:6px">Enter the host key to create a game</div>
+   <div class="row"><input id="keyIn" type="password" placeholder="Host key" autocomplete="off" style="font:inherit;font-size:1.2rem;padding:12px;border-radius:10px;border:2px solid #ccc;text-align:center">
+   <button id="keyBtn" class="btn">Create game</button></div>
+   <div id="keyErr" class="err"></div>
+  </div>
   <div class="row" style="margin:10px 0"><span id="count" class="small" style="font-size:1.2rem">0 players</span></div>
   <div class="players" id="plist"></div>
   <div class="small" style="margin:6px 0">Click a name to remove a player</div>
@@ -80,7 +86,13 @@ function key(){try{return sessionStorage.getItem("hostKey")||""}catch(e){return 
 
 function create(){
   socket.emit("host:create",key(),r=>{
-    if(r.error){const k=prompt("Host key:");if(k===null)return;try{sessionStorage.setItem("hostKey",k)}catch(e){}return create()}
+    if(r.error){
+      $("keyBox").classList.remove("hidden");
+      $("startBtn").disabled=true;
+      if(key())$("keyErr").textContent="That key is not right. Try again.";
+      return;
+    }
+    $("keyBox").classList.add("hidden");$("keyErr").textContent="";
     game=r;try{sessionStorage.setItem("hostPin",r.pin)}catch(e){}
     wasCreated=true;
     $("pin").textContent=r.pin;$("ttl").textContent=r.title+" | "+r.total+" questions";
@@ -88,6 +100,8 @@ function create(){
     document.title="PIN "+r.pin+" | Ajira Quiz Arena";
   });
 }
+$("keyBtn").onclick=()=>{try{sessionStorage.setItem("hostKey",$("keyIn").value.trim())}catch(e){}create()};
+$("keyIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("keyBtn").click()});
 socket.on("connect",()=>{
   let pin=null;try{pin=sessionStorage.getItem("hostPin")}catch(e){}
   if(wasCreated&&pin){socket.emit("host:reconnect",pin,r=>{if(r.error){create()}})}
